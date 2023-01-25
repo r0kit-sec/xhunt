@@ -14,7 +14,7 @@ phases:
   install:
     on-failure: ABORT
     runtime-versions:
-      python: 3.9
+      python: 3.10
   pre_build:
     on-failure: ABORT
     commands:
