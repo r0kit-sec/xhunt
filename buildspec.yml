@@ -25,4 +25,4 @@ phases:
     on-failure: ABORT
     commands:
       - cfn-lint cloudformation/*.yaml
-      - docker build -t 
+      - docker build -t xhunt:latest .
