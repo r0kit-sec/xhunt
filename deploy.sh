@@ -1,6 +1,6 @@
 #!/bin/bash
 
-xhunt-build-deploy-container() {
+xhunt-build-push-container() {
     CONTAINER_NAME=xhunt
     CONTAINER_TAG=latest
     ECR_REPO_NAME=xhunt-ecr-repo
