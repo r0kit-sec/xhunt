@@ -18,6 +18,9 @@ phases:
   pre_build:
     on-failure: ABORT
     commands:
+      - echo foobar $AWS_ACCOUNT_ID
+      - echo foobar $CODEBUILD_WEBHOOK_ACTOR_ACCOUNT_ID
+      - exit 1
       - pip install --upgrade pip
       - pip install awscli cfn-lint
       - cfn-lint cloudformation/ecr/*.yaml
