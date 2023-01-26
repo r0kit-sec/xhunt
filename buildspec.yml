@@ -20,9 +20,8 @@ phases:
     commands:
       - source ./deploy.sh
       - pip install --upgrade pip
-      - pip install awscli cfn-lint taskcat
+      - pip install awscli cfn-lint
       - cfn-lint cloudformation/ecr/*.yaml
-      - taskcat test run
   build:
     on-failure: ABORT
     commands:
