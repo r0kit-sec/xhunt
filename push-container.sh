@@ -10,3 +10,5 @@ xhunt-build-push-container() {
     docker tag $CONTAINER_NAME:$CONTAINER_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:latest
     docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:latest
 }
+
+xhunt-build-push-container

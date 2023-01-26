@@ -18,7 +18,6 @@ phases:
   pre_build:
     on-failure: ABORT
     commands:
-      - source ./deploy.sh
       - pip install --upgrade pip
       - pip install awscli cfn-lint
       - cfn-lint cloudformation/ecr/*.yaml
@@ -29,4 +28,4 @@ phases:
   post_build:
     on-failure: ABORT
     commands:
-      - xhunt-build-push-container
+      - ./push-container.sh
