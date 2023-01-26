@@ -3,7 +3,7 @@ version: 0.2
 env:
   shell: bash
   variables:
-    AWS_ACCOUNT_ID: $CODEBUILD_WEBHOOK_ACTOR_ACCOUNT_ID
+    AWS_ACCOUNT_ID: 042811066344
     ECR_REPOSITORY: xhunt-ecr
 
 proxy:
@@ -18,9 +18,6 @@ phases:
   pre_build:
     on-failure: ABORT
     commands:
-      - echo foobar $AWS_ACCOUNT_ID
-      - echo foobar $CODEBUILD_WEBHOOK_ACTOR_ACCOUNT_ID
-      - exit 1
       - pip install --upgrade pip
       - pip install awscli cfn-lint
       - cfn-lint cloudformation/ecr/*.yaml
