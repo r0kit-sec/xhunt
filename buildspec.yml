@@ -21,8 +21,13 @@ phases:
       - pip install --upgrade pip
       - pip install awscli
       - pip install cfn-lint
+      - $(aws ecr get-login --no-include-email --region $AWS_REGION)
   build:
     on-failure: ABORT
     commands:
       - cfn-lint cloudformation/*.yaml
       - docker build -t xhunt:latest .
+  post_build:
+    on-failure: ABORT
+    commands:
+      - docker push $ECR_REPOSITORY:latest

@@ -1,0 +1,9 @@
+project:
+  name: xhunt
+  regions:
+  - us-west-1
+tests:
+  default:
+    template: ./cloudformation/ecr/ecr.yaml
+    parameters:
+      RepoName: xhunt-ecr-repo

@@ -1,0 +1,12 @@
+#!/bin/bash
+
+xhunt-build-deploy-container() {
+    CONTAINER_NAME=xhunt
+    CONTAINER_TAG=latest
+    ECR_REPO_NAME=xhunt-ecr-repo
+    aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin \
+        $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+
+    docker tag $CONTAINER_NAME:$CONTAINER_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:latest
+    docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:latest
+}
