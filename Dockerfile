@@ -4,7 +4,10 @@ ENV PATH="/usr/local/go/bin:/root/go/bin:${PATH}"
 WORKDIR /opt
 ARG GO_VERSION=1.19.5
 RUN apt update
-RUN apt install -y wget git gcc python3 python3-pip libpcap-dev jq curl unzip mandoc
+RUN apt install -y wget git gcc python3 python3-pip libpcap-dev jq curl unzip mandoc tmux
+
+# Add tmux configs
+ADD .tmux.conf /root
 
 # Install AWS CLI
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
