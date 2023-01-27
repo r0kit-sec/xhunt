@@ -1,0 +1,132 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: SQS Queue subscribed to an SNS Topic
+
+Resources:
+  # Topic to subscribe to
+  ReflectedXSSUrlsSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties: 
+      DisplayName: "Reflected XSS SNS Topic"
+      FifoTopic: false
+      #Subscription: 
+      #  - TODO
+      Tags: 
+        - 
+          Key: xhunt-infrastructure
+          Value: !Ref AWS::StackId
+      TopicName: ReflectedXSSUrlsSNSTopic
+
+  # Parameter for queue name in case we need to update it
+  # Containers will reference this paramter to read messages from the queue
+  ReflectedXSSUrlsQueueIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Description: ARN for reflected XSS URLs queue
+      Name: reflected-xss-urls-queue
+      Type: String
+      Value: !Ref SQSQueue
+      Tags:
+        xhunt-infrastructure: !Ref AWS::StackId
+
+  SQSQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 180
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ReflectedXSSUrlsDeadLetterQueue.Arn
+        maxReceiveCount: 3
+      QueueName: ReflectedXSSUrlsQueue
+      Tags:
+        - 
+          Key: xhunt-infrastructure
+          Value: !Ref AWS::StackId
+
+  SQSQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref SQSQueue
+      PolicyDocument:
+        Id: AllowIncomingAccess
+        Statement:
+          -
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Ref AWS::AccountId
+            Action:
+              - sqs:SendMessage
+              - sqs:ReceiveMessage
+            Resource:
+              - !GetAtt SQSQueue.Arn
+          -
+            Effect: Allow
+            Principal: '*'
+            Action:
+              - sqs:SendMessage
+            Resource:
+              - !GetAtt SQSQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Ref ReflectedXSSUrlsSNSTopic
+
+  ReflectedXSSUrlsDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 160
+      QueueName: ReflectedXSSUrlsDeadLetterQueue
+      Tags:
+        -
+          Key: xhunt-infrastructure
+          Value: !Ref AWS::StackId
+
+  SNSSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref ReflectedXSSUrlsSNSTopic
+      Endpoint: !GetAtt SQSQueue.Arn
+      Protocol: sqs
+      RawMessageDelivery: true
+
+  SQSQueueAgeOfOldestMessage:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: SQSQueue_AgeOfOldestMessage
+      AlarmDescription: Alarms if the SQS Queue has messages in it for too long
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt SQSQueue.QueueName
+      DatapointsToAlarm: 2
+      EvaluationPeriods: 3
+      MetricName: ApproximateAgeOfOldestMessage
+      Namespace: AWS/SQS
+      Period: 300
+      Statistic: Maximum
+      Threshold: 30
+      TreatMissingData: notBreaching
+      Unit: Seconds
+
+  ReflectedXSSUrlsDeadLetterQueueApproximateNumberOfMessagesVisible:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: ReflectedXSSUrlsDeadLetterQueue_ApproximateNumberOfMessagesVisible
+      AlarmDescription: Alarms if the Dead Letter Queue has too many messages
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt ReflectedXSSUrlsDeadLetterQueue.QueueName
+      DatapointsToAlarm: 2
+      EvaluationPeriods: 3
+      MetricName: ApproximateNumberOfMessagesVisible
+      Namespace: AWS/SQS
+      Period: 300
+      Statistic: Maximum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+Outputs:
+
+  SQSQueueArn:
+    Value: !GetAtt SQSQueue.Arn
