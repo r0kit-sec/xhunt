@@ -1,11 +1,10 @@
 xhunt-cloudformation-ecr-create() {
-    aws cloudformation create-stack --stack-name $1 \
-        --template-body file://$2 \
-        --parameter file://$3 \
+    aws cloudformation create-stack --stack-name ecr-repos \
+        --template-body file://ecr.yaml \
         --region $AWS_REGION
 }
 
 xhunt-cloudformation-ecr-destroy() {
-    aws cloudformation delete-stack --stack-name $1 \
+    aws cloudformation delete-stack --stack-name ecr-repos \
         --region $AWS_REGION
 }

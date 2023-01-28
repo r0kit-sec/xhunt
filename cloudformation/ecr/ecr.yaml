@@ -1,21 +1,10 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Elastic Container Registory Repository using Cloudformation
 
-Parameters:
-  RepoName: 
-    Description: Name for ecr repo 
-    Type: String
-
 Resources:
-  ECRRepo:
+  XHuntTools:
     Type: AWS::ECR::Repository
     Properties: 
-      RepositoryName: !Sub ${RepoName}-repo
+      RepositoryName: xhunt-tools
       ImageScanningConfiguration: 
         ScanOnPush: true
-
-Outputs:
-  RepoName:
-    Value: !Ref RepoName
-    Export:
-      Name: RepoName
