@@ -4,13 +4,6 @@ import os
 from botocore.exceptions import ClientError
 
 
-def process_sqs_message(message):
-    for record in event['Records']:
-        print("test")
-        payload = record["body"]
-        print(str(payload))
-
-
 def get_queue(sqs, name):
     """
     Gets an SQS queue by name.
