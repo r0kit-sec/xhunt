@@ -1,0 +1,129 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  ECS Cluster
+
+  Infrastructure for the task cluster. This is where all container jobs shall be ran.
+  The environment is a Fargate ECS cluster with spot instances.
+
+
+Parameters:
+  ClusterSubnetID:
+    Type: String
+    Default: subnet-24a5095e
+    Description: Enter the subnet ID you wish to deploy this cluster in.
+  ClusterVPCID:
+    Type: String
+    Default: vpc-5475173c
+    Description: >
+      Enter the VPC ID you wish to deploy this cluster in. The default VPC is recommended.
+      This is done so that a security group can be deployed. 
+
+
+Resources:
+  BatchComputeEnvironment:
+    Type: AWS::Batch::ComputeEnvironment
+    Properties: 
+      ComputeEnvironmentName: XHuntTaskComputeEnvironment
+      ComputeResources:
+          MaxvCpus: 8
+          Subnets: 
+            - !Ref ClusterSubnetID
+          SecurityGroupIds:
+            - !Ref BatchComputeEnvironmentSecurityGroup
+          Type: FARGATE_SPOT
+      ReplaceComputeEnvironment: true
+      State: ENABLED
+      Tags: 
+        xhunt : task-cluster
+      Type: MANAGED
+
+
+  BatchComputeEnvironmentSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: Security group for batch compute environment
+      GroupName: XHuntBatchComputeEnvironment
+      SecurityGroupEgress: 
+        - Description: Allow all egress   
+          CidrIp: 0.0.0.0/0
+          IpProtocol: -1
+      Tags: 
+        - Key: xhunt
+          Value: task-cluster
+      VpcId: !Ref ClusterVPCID
+
+  
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+      ManagedPolicyArns: 
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      RoleName: XHuntECSTaskClusterExecutionRole
+      Tags:
+        - Key: xhunt
+          Value: task-cluster
+
+
+  JobDefinition:
+    Type: AWS::Batch::JobDefinition
+    Properties:
+      ContainerProperties:
+        Command:
+        - echo
+        - hello world
+        Environment: []
+        ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
+        FargatePlatformConfiguration:
+          PlatformVersion: LATEST
+        Image: public.ecr.aws/amazonlinux/amazonlinux:latest
+        LinuxParameters:
+          Devices: []
+          InitProcessEnabled: false
+          Tmpfs: []
+        LogConfiguration:
+          LogDriver: awslogs
+          Options: {}
+          SecretOptions: []
+        MountPoints: []
+        NetworkConfiguration:
+          AssignPublicIp: ENABLED
+        ReadonlyRootFilesystem: false
+        ResourceRequirements:
+        - Type: VCPU
+          Value: '1.0'
+        - Type: MEMORY
+          Value: '2048'
+        Secrets: []
+        Ulimits: []
+        User: root
+        Volumes: []
+      JobDefinitionName: HelloWorld
+      Parameters: {}
+      PlatformCapabilities:
+      - FARGATE
+      RetryStrategy:
+        Attempts: 1
+        EvaluateOnExit: []
+      Tags: {}
+      Timeout:
+        AttemptDurationSeconds: 300
+      Type: container
+
+  JobQueue:
+    Type: AWS::Batch::JobQueue
+    Properties: 
+      ComputeEnvironmentOrder: 
+        - ComputeEnvironment: !GetAtt BatchComputeEnvironment.ComputeEnvironmentArn
+          Order: 1
+      JobQueueName: XHuntTaskClusterJobQueue
+      Priority: 1
+      State: ENABLED
+      Tags: 
+        xhunt : task-cluster

@@ -1,0 +1,10 @@
+[
+  {
+    "ParameterKey": "ClusterSubnetID",
+    "ParameterValue": "subnet-24a5095e"
+  },
+  {
+    "ParameterKey": "ClusterVPCID",
+    "ParameterValue": "vpc-5475173c"
+  }
+]
