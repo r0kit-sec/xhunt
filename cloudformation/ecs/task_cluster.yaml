@@ -65,12 +65,14 @@ Resources:
               Service: ecs-tasks.amazonaws.com
       ManagedPolicyArns: 
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
       RoleName: XHuntECSTaskClusterExecutionRole
       Tags:
         - Key: xhunt
           Value: task-cluster
 
 
+  # Task for dalfox reflected xss
   JobDefinition:
     Type: AWS::Batch::JobDefinition
     Properties:
@@ -89,7 +91,10 @@ Resources:
           Tmpfs: []
         LogConfiguration:
           LogDriver: awslogs
-          Options: {}
+          Options:
+            awslogs-region: !Ref AWS::Region
+            awslogs-group: /xhunt/task-cluster/dalfox-reflected-xss
+            awslogs-create-group: true
           SecretOptions: []
         MountPoints: []
         NetworkConfiguration:
