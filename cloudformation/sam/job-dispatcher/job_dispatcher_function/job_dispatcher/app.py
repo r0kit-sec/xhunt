@@ -78,20 +78,24 @@ def delete_message(queue, message):
         logging.exception(f"Failed to delete message with id {message.message_id}: {error}")
 
 
-def submit_jobs(client, queue, messages):
+def submit_jobs(messages):
+    # We can only get the ARN from CloudFormation, so we need to process it here to get the name
+    job_queue_arn = os.environ['TASK_CLUSTER_JOB_QUEUE_ARN']
+    job_definition_arn = os.environ['TASK_CLUSTER_REFLECTED_XSS_JOB_DEFINITION_ARN']
+    client = boto3.client('batch')
+
     # Jobs are submitted in batches to optimize and distribute workload in the cluster
     for message in messages:
         try:
             response = client.submit_job(
-                jobName=f'dalfox-{message.message_id}',
-                jobQueue='test-job-queue',
-                jobDefinition='test-job-definition',
+                jobName=f"dalfox-{message['messageId']}",
+                jobQueue=job_queue_arn,
+                jobDefinition=job_definition_arn,
                 parameters={},
             )
             logging.info(f"Submitted job: {response['jobName']}")
-            delete_message(queue, message)
         except ClientError as error:
-            logging.exception(f"Failed to submit job for message id {message.message_id}: {error}")
+            logging.exception(f"Failed to submit job for message id {message['messageId']}: {error}")
 
 
 def lambda_handler(event, context):
@@ -107,4 +111,4 @@ def lambda_handler(event, context):
 
     messages = event['Records']
     logger.info(f"Got messages: {messages}")
-    # submit_jobs(batch, queue, messages)
+    submit_jobs(messages)

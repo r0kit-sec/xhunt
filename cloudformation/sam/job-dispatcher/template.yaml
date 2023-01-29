@@ -8,7 +8,7 @@ Description: >
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
-    Timeout: 3
+    Timeout: 180
 
 Resources:
   JobDispatcherFunction:
@@ -20,6 +20,10 @@ Resources:
       Architectures:
       - x86_64
       Policies: AWSLambdaSQSQueueExecutionRole
+      Environment:
+        Variables:
+            TASK_CLUSTER_JOB_QUEUE_ARN: !ImportValue XHuntTaskClusterJobQueueARN
+            TASK_CLUSTER_REFLECTED_XSS_JOB_DEFINITION_ARN: !ImportValue XHuntTaskClusterJobDefinitionARN
 
       # Configure event source mappings
       # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-property-function-sqs.html
