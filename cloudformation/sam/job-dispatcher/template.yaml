@@ -19,6 +19,7 @@ Resources:
       Runtime: python3.9
       Architectures:
       - x86_64
+      Policies: AWSLambdaSQSQueueExecutionRole
       Events:
         HelloWorld:
           Type: CloudWatchEvent # More info about CloudWatchEvent Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#cloudwatchevent
@@ -39,6 +40,7 @@ Resources:
           - Ref: AWS::StackName
       ResourceQuery:
         Type: CLOUDFORMATION_STACK_1_0
+
   ApplicationInsightsMonitoring:
     Type: AWS::ApplicationInsights::Application
     Properties:
@@ -49,6 +51,149 @@ Resources:
           - Ref: AWS::StackName
       AutoConfigurationEnabled: 'true'
     DependsOn: ApplicationResourceGroup
+
+  # Topic to subscribe to
+  ReflectedXSSUrlsSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties: 
+      DisplayName: "Reflected XSS SNS Topic"
+      FifoTopic: false
+      #Subscription: 
+      #  - TODO
+      Tags: 
+        - 
+          Key: xhunt-infrastructure
+          Value: !Ref AWS::StackId
+      TopicName: ReflectedXSSUrlsSNSTopic
+
+  # Parameter for queue name in case we need to update it
+  # Containers will reference this paramter to read messages from the queue
+  ReflectedXSSUrlsQueueIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Description: ARN for reflected XSS URLs queue
+      Name: reflected-xss-urls-queue
+      Type: String
+      Value: !Ref SQSQueue
+      Tags:
+        xhunt-infrastructure: !Ref AWS::StackId
+
+  SQSQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 180
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ReflectedXSSUrlsDeadLetterQueue.Arn
+        maxReceiveCount: 3
+      QueueName: ReflectedXSSUrlsQueue
+      Tags:
+        - 
+          Key: xhunt-infrastructure
+          Value: !Ref AWS::StackId
+
+  SQSQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref SQSQueue
+      PolicyDocument:
+        Id: AllowIncomingAccess
+        Statement:
+          -
+            Effect: Allow
+            Principal:
+              AWS:
+                - !Ref AWS::AccountId
+            Action:
+              - sqs:SendMessage
+              - sqs:ReceiveMessage
+            Resource:
+              - !GetAtt SQSQueue.Arn
+          -
+            Effect: Allow
+            Principal: '*'
+            Action:
+              - sqs:SendMessage
+            Resource:
+              - !GetAtt SQSQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Ref ReflectedXSSUrlsSNSTopic
+
+  ReflectedXSSUrlsDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 160
+      QueueName: ReflectedXSSUrlsDeadLetterQueue
+      Tags:
+        -
+          Key: xhunt-infrastructure
+          Value: !Ref AWS::StackId
+
+  SNSSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref ReflectedXSSUrlsSNSTopic
+      Endpoint: !GetAtt SQSQueue.Arn
+      Protocol: sqs
+      RawMessageDelivery: true
+
+  SQSQueueAgeOfOldestMessage:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: SQSQueue_AgeOfOldestMessage
+      AlarmDescription: Alarms if the SQS Queue has messages in it for too long
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt SQSQueue.QueueName
+      DatapointsToAlarm: 2
+      EvaluationPeriods: 3
+      MetricName: ApproximateAgeOfOldestMessage
+      Namespace: AWS/SQS
+      Period: 300
+      Statistic: Maximum
+      Threshold: 30
+      TreatMissingData: notBreaching
+      Unit: Seconds
+
+  ReflectedXSSUrlsDeadLetterQueueApproximateNumberOfMessagesVisible:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: ReflectedXSSUrlsDeadLetterQueue_ApproximateNumberOfMessagesVisible
+      AlarmDescription: Alarms if the Dead Letter Queue has too many messages
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt ReflectedXSSUrlsDeadLetterQueue.QueueName
+      DatapointsToAlarm: 2
+      EvaluationPeriods: 3
+      MetricName: ApproximateNumberOfMessagesVisible
+      Namespace: AWS/SQS
+      Period: 300
+      Statistic: Maximum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+  # SQS Execution Role
+  SQSExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: XHuntJobDispatcherSQSExecutionRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          -
+            Effect: 'Allow'
+            Principal:
+              Service:
+                - 'lambda.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole
+
+
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM
@@ -56,6 +201,7 @@ Outputs:
   HelloWorldFunction:
     Description: Hello World Lambda Function ARN
     Value: !GetAtt HelloWorldFunction.Arn
-  HelloWorldFunctionIamRole:
-    Description: Implicit IAM Role created for Hello World function
-    Value: !GetAtt HelloWorldFunctionRole.Arn
+
+  # SQS
+  SQSQueueArn:
+    Value: !GetAtt SQSQueue.Arn
