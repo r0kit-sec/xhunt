@@ -108,7 +108,7 @@ Resources:
         Ulimits: []
         User: root
         Volumes: []
-      JobDefinitionName: HelloWorld
+      JobDefinitionName: DalfoxReflectedXSS
       Parameters: {}
       PlatformCapabilities:
       - FARGATE
