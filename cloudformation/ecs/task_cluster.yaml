@@ -127,3 +127,13 @@ Resources:
       State: ENABLED
       Tags: 
         xhunt : task-cluster
+
+Outputs:
+  XHuntTaskClusterJobQueueARN:
+    Value: !Ref JobQueue
+    Export:
+      Name: XHuntTaskClusterJobQueueARN
+  XHuntTaskClusterJobDefinitionARN:
+    Value: !Ref JobDefinition
+    Export:
+      Name: XHuntTaskClusterJobDefinitionARN
