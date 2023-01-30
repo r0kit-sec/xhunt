@@ -56,8 +56,6 @@ RUN go install github.com/projectdiscovery/katana/cmd/katana@latest
 
 # Install notify
 RUN go install -v github.com/projectdiscovery/notify/cmd/notify@latest
-ADD ./notify/provider-config.yaml /root/.config/notify/
-ADD ./notify/dalfox-notify.sh .
 
 # Install Gxss to validate reflected parameters
 RUN go install github.com/KathanP19/Gxss@latest
@@ -71,3 +69,8 @@ RUN pip3 install uro
 
 # Install anew for unique concatenation
 RUN go install -v github.com/tomnomnom/anew@latest
+
+# Finish provisioning scripts
+ADD ./notify/provider-config.yaml /root/.config/notify/provider-config.yaml
+ADD ./notify/dalfox-notify.sh ./notify/dalfox-notify.sh
+ADD ./tasks.sh .
