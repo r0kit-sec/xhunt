@@ -77,6 +77,8 @@ Resources:
 
   DalfoxUrlsQueue:
     Type: AWS::SQS::Queue
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
     Properties:
       VisibilityTimeout: 180
       RedrivePolicy:
@@ -119,6 +121,8 @@ Resources:
 
   DalfoxUrlsDeadLetterQueue:
     Type: AWS::SQS::Queue
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
     Properties:
       VisibilityTimeout: 160
       QueueName: DalfoxUrlsDeadLetterQueue

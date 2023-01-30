@@ -26,6 +26,8 @@ Parameters:
 Resources:
   DalfoxUrlJobDispatcherServerlessApplication:
     Type: AWS::Serverless::Application
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
     Properties:
       Location: dalfox_url_job_dispatcher/template.yaml
       Parameters:
