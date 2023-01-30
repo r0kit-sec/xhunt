@@ -19,11 +19,13 @@ Resources:
       Runtime: python3.9
       Architectures:
       - x86_64
-      Policies: AWSLambdaSQSQueueExecutionRole
+      Policies: 
+        - AWSLambdaSQSQueueExecutionRole
+        - AWSBatchServiceEventTargetRole
       Environment:
         Variables:
             TASK_CLUSTER_JOB_QUEUE_ARN: !ImportValue XHuntTaskClusterJobQueueARN
-            TASK_CLUSTER_REFLECTED_XSS_JOB_DEFINITION_ARN: !ImportValue XHuntTaskClusterJobDefinitionARN
+            TASK_CLUSTER_REFLECTED_XSS_JOB_DEFINITION_ARN: !ImportValue DalfoxReflectedXSSJobDefinitionARN
 
       # Configure event source mappings
       # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-property-function-sqs.html
@@ -178,24 +180,6 @@ Resources:
       Statistic: Maximum
       Threshold: 1
       TreatMissingData: notBreaching
-
-  # SQS Execution Role
-  SQSExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: XHuntJobDispatcherSQSExecutionRole
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          -
-            Effect: 'Allow'
-            Principal:
-              Service:
-                - 'lambda.amazonaws.com'
-            Action:
-              - 'sts:AssumeRole'
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole
 
 
 Outputs:

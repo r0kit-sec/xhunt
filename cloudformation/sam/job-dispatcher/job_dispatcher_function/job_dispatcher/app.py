@@ -1,6 +1,7 @@
 import boto3
 import logging
 import os
+import shlex
 from botocore.exceptions import ClientError
 
 
@@ -13,11 +14,17 @@ def submit_jobs(messages):
     # Jobs are submitted in batches to optimize and distribute workload in the cluster
     for message in messages:
         try:
+            raw_command = f"dalfox url -S --found-action './notify/dalfox-notify.sh @@query@@ @@type@@' {message['body']}"
+            command = shlex.split(raw_command)
+            logging.info(f"Submitting command: {raw_command}")
+            
             response = client.submit_job(
                 jobName=f"dalfox-{message['messageId']}",
                 jobQueue=job_queue_arn,
                 jobDefinition=job_definition_arn,
-                parameters={},
+                containerOverrides={
+                    'command': command
+                },
             )
             logging.info(f"Submitted job: {response['jobName']}")
         except ClientError as error:
@@ -30,11 +37,6 @@ def lambda_handler(event, context):
         logger.setLevel(logging.DEBUG)
     else:
         logger.setLevel(logging.INFO)
-    logger.info('## ENVIRONMENT VARIABLES')
-    logger.info(os.environ)
-    logger.info('## EVENT')
-    logger.info(event)
-
     messages = event['Records']
     logger.info(f"Got messages: {messages}")
     submit_jobs(messages)
