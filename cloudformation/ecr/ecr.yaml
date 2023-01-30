@@ -2,9 +2,15 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: Elastic Container Registory Repository using Cloudformation
 
 Resources:
-  XHuntTools:
+  XHuntToolsRepository:
     Type: AWS::ECR::Repository
     Properties: 
       RepositoryName: xhunt-tools
       ImageScanningConfiguration: 
         ScanOnPush: true
+
+Outputs:
+  XHuntToolsContainerRepositoryName:
+    Value: !Ref XHuntToolsRepository
+    Export:
+      Name: XHuntToolsContainerRepositoryName
