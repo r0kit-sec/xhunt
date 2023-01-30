@@ -10,6 +10,19 @@ Globals:
   Function:
     Timeout: 180
 
+Parameters:
+  ClusterSubnetID:
+    Type: String
+    Default: subnet-24a5095e
+    Description: Enter the subnet ID you wish to deploy this cluster in.
+  ClusterVPCID:
+    Type: String
+    Default: vpc-5475173c
+    Description: >
+      Enter the VPC ID you wish to deploy this cluster in. The default VPC is recommended.
+      This is done so that a security group can be deployed. 
+
+
 Resources:
   JobDispatcherFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -24,17 +37,17 @@ Resources:
         - AWSBatchServiceEventTargetRole
       Environment:
         Variables:
-            TASK_CLUSTER_JOB_QUEUE_ARN: !ImportValue XHuntTaskClusterJobQueueARN
-            TASK_CLUSTER_REFLECTED_XSS_JOB_DEFINITION_ARN: !ImportValue DalfoxReflectedXSSJobDefinitionARN
+            TASK_CLUSTER_JOB_QUEUE_ARN: !Ref JobQueue
+            TASK_CLUSTER_REFLECTED_XSS_JOB_DEFINITION_ARN: !Ref DalfoxUrlsJobDefinition
 
       # Configure event source mappings
       # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-property-function-sqs.html
       Events:
-        ReflectedXSSUrlsQueue:
+        DalfoxUrlsQueue:
           Type: SQS
           Properties:
             Enabled: true
-            Queue: !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${SQSQueue.QueueName}'
+            Queue: !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${DalfoxUrlsQueue.QueueName}'
 
   ApplicationResourceGroup:
     Type: AWS::ResourceGroups::Group
@@ -59,7 +72,7 @@ Resources:
     DependsOn: ApplicationResourceGroup
 
   # Topic to subscribe to
-  ReflectedXSSUrlsSNSTopic:
+  DalfoxUrlsSNSTopic:
     Type: AWS::SNS::Topic
     Properties: 
       DisplayName: "Reflected XSS SNS Topic"
@@ -70,38 +83,39 @@ Resources:
         - 
           Key: xhunt-infrastructure
           Value: !Ref AWS::StackId
-      TopicName: ReflectedXSSUrlsSNSTopic
+      TopicName: DalfoxUrlsSNSTopic
 
+  ### QUEUE ###
   # Parameter for queue name in case we need to update it
   # Containers will reference this paramter to read messages from the queue
-  ReflectedXSSUrlsQueueIdParameter:
+  DalfoxUrlsQueueIdParameter:
     Type: AWS::SSM::Parameter
     Properties: 
       Description: ARN for reflected XSS URLs queue
       Name: reflected-xss-urls-queue
       Type: String
-      Value: !Ref SQSQueue
+      Value: !Ref DalfoxUrlsQueue
       Tags:
         xhunt-infrastructure: !Ref AWS::StackId
 
-  SQSQueue:
+  DalfoxUrlsQueue:
     Type: AWS::SQS::Queue
     Properties:
       VisibilityTimeout: 180
       RedrivePolicy:
-        deadLetterTargetArn: !GetAtt ReflectedXSSUrlsDeadLetterQueue.Arn
+        deadLetterTargetArn: !GetAtt DalfoxUrlsDeadLetterQueue.Arn
         maxReceiveCount: 3
-      QueueName: ReflectedXSSUrlsQueue
+      QueueName: DalfoxUrlsQueue
       Tags:
         - 
           Key: xhunt-infrastructure
           Value: !Ref AWS::StackId
 
-  SQSQueuePolicy:
+  DalfoxUrlsQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties:
       Queues:
-        - !Ref SQSQueue
+        - !Ref DalfoxUrlsQueue
       PolicyDocument:
         Id: AllowIncomingAccess
         Statement:
@@ -114,45 +128,45 @@ Resources:
               - sqs:SendMessage
               - sqs:ReceiveMessage
             Resource:
-              - !GetAtt SQSQueue.Arn
+              - !GetAtt DalfoxUrlsQueue.Arn
           -
             Effect: Allow
             Principal: '*'
             Action:
               - sqs:SendMessage
             Resource:
-              - !GetAtt SQSQueue.Arn
+              - !GetAtt DalfoxUrlsQueue.Arn
             Condition:
               ArnEquals:
-                aws:SourceArn: !Ref ReflectedXSSUrlsSNSTopic
+                aws:SourceArn: !Ref DalfoxUrlsSNSTopic
 
-  ReflectedXSSUrlsDeadLetterQueue:
+  DalfoxUrlsDeadLetterQueue:
     Type: AWS::SQS::Queue
     Properties:
       VisibilityTimeout: 160
-      QueueName: ReflectedXSSUrlsDeadLetterQueue
+      QueueName: DalfoxUrlsDeadLetterQueue
       Tags:
         -
           Key: xhunt-infrastructure
           Value: !Ref AWS::StackId
 
-  SNSSubscription:
+  DalfoxUrlsSNSSubscription:
     Type: AWS::SNS::Subscription
     Properties:
-      TopicArn: !Ref ReflectedXSSUrlsSNSTopic
-      Endpoint: !GetAtt SQSQueue.Arn
+      TopicArn: !Ref DalfoxUrlsSNSTopic
+      Endpoint: !GetAtt DalfoxUrlsQueue.Arn
       Protocol: sqs
       RawMessageDelivery: true
 
-  SQSQueueAgeOfOldestMessage:
+  DalfoxUrlsQueueAgeOfOldestMessage:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: SQSQueue_AgeOfOldestMessage
+      AlarmName: DalfoxUrlsQueue_AgeOfOldestMessage
       AlarmDescription: Alarms if the SQS Queue has messages in it for too long
       ComparisonOperator: GreaterThanThreshold
       Dimensions:
         - Name: QueueName
-          Value: !GetAtt SQSQueue.QueueName
+          Value: !GetAtt DalfoxUrlsQueue.QueueName
       DatapointsToAlarm: 2
       EvaluationPeriods: 3
       MetricName: ApproximateAgeOfOldestMessage
@@ -163,15 +177,15 @@ Resources:
       TreatMissingData: notBreaching
       Unit: Seconds
 
-  ReflectedXSSUrlsDeadLetterQueueApproximateNumberOfMessagesVisible:
+  DalfoxUrlsDeadLetterQueueApproximateNumberOfMessagesVisible:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: ReflectedXSSUrlsDeadLetterQueue_ApproximateNumberOfMessagesVisible
+      AlarmName: DalfoxUrlsDeadLetterQueue_ApproximateNumberOfMessagesVisible
       AlarmDescription: Alarms if the Dead Letter Queue has too many messages
       ComparisonOperator: GreaterThanOrEqualToThreshold
       Dimensions:
         - Name: QueueName
-          Value: !GetAtt ReflectedXSSUrlsDeadLetterQueue.QueueName
+          Value: !GetAtt DalfoxUrlsDeadLetterQueue.QueueName
       DatapointsToAlarm: 2
       EvaluationPeriods: 3
       MetricName: ApproximateNumberOfMessagesVisible
@@ -181,6 +195,130 @@ Resources:
       Threshold: 1
       TreatMissingData: notBreaching
 
+  ## ECR ##
+  XHuntToolsRepository:
+    Type: AWS::ECR::Repository
+    Properties: 
+      RepositoryName: xhunt-tools
+      ImageScanningConfiguration: 
+        ScanOnPush: true
+
+  ## FARGATE CLUSTER ##
+  BatchComputeEnvironment:
+    Type: AWS::Batch::ComputeEnvironment
+    Properties: 
+      ComputeEnvironmentName: XHuntTaskComputeEnvironment
+      ComputeResources:
+          MaxvCpus: 8
+          Subnets: 
+            - !Ref ClusterSubnetID
+          SecurityGroupIds:
+            - !Ref BatchComputeEnvironmentSecurityGroup
+          Type: FARGATE_SPOT
+      ReplaceComputeEnvironment: true
+      State: ENABLED
+      Tags: 
+        xhunt : task-cluster
+      Type: MANAGED
+
+
+  BatchComputeEnvironmentSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: Security group for batch compute environment
+      GroupName: XHuntBatchComputeEnvironment
+      SecurityGroupEgress: 
+        - Description: Allow all egress   
+          CidrIp: 0.0.0.0/0
+          IpProtocol: -1
+      Tags: 
+        - Key: xhunt
+          Value: task-cluster
+      VpcId: !Ref ClusterVPCID
+
+  
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+      ManagedPolicyArns: 
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      RoleName: XHuntECSTaskClusterExecutionRole
+      Tags:
+        - Key: xhunt
+          Value: task-cluster
+        
+  DalfoxUrlsJobDefinition:
+    Type: AWS::Batch::JobDefinition
+    Properties:
+      ContainerProperties:
+        Command:
+        - dalfox
+        - url
+        Environment: []
+        ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
+        FargatePlatformConfiguration:
+          PlatformVersion: LATEST
+        Image:
+          !Join
+            - ''
+            - - !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/
+              - !Ref  XHuntToolsRepository
+              - :latest
+        LinuxParameters:
+          Devices: []
+          InitProcessEnabled: false
+          Tmpfs: []
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-region: !Ref AWS::Region
+            awslogs-group: /xhunt/task-cluster/dalfox-reflected-xss
+            awslogs-create-group: true
+          SecretOptions: []
+        MountPoints: []
+        NetworkConfiguration:
+          AssignPublicIp: ENABLED
+        ReadonlyRootFilesystem: false
+        ResourceRequirements:
+        - Type: VCPU
+          Value: '1.0'
+        - Type: MEMORY
+          Value: '2048'
+        Secrets: []
+        Ulimits: []
+        User: root
+        Volumes: []
+      JobDefinitionName: DalfoxReflectedXSS
+      Parameters: {}
+      PlatformCapabilities:
+      - FARGATE
+      RetryStrategy:
+        Attempts: 1
+        EvaluateOnExit: []
+      Tags: {}
+      Timeout:
+        AttemptDurationSeconds: 300
+      Type: container
+
+  JobQueue:
+    Type: AWS::Batch::JobQueue
+    Properties: 
+      ComputeEnvironmentOrder: 
+        - ComputeEnvironment: !GetAtt BatchComputeEnvironment.ComputeEnvironmentArn
+          Order: 1
+      JobQueueName: XHuntTaskClusterJobQueue
+      Priority: 1
+      State: ENABLED
+      Tags: 
+        xhunt : task-cluster
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
@@ -191,5 +329,21 @@ Outputs:
     Value: !GetAtt JobDispatcherFunction.Arn
 
   # SQS
-  SQSQueueArn:
-    Value: !GetAtt SQSQueue.Arn
+  DalfoxUrlsQueueArn:
+    Value: !GetAtt DalfoxUrlsQueue.Arn
+
+  # ECR
+  XHuntToolsContainerRepositoryName:
+    Value: !Ref XHuntToolsRepository
+    Export:
+      Name: XHuntToolsContainerRepositoryName
+
+  # Fargate ECS Cluster
+  XHuntTaskClusterJobQueueARN:
+    Value: !Ref JobQueue
+    Export:
+      Name: XHuntTaskClusterJobQueueARN
+  DalfoxUrlsJobDefinitionARN:
+    Value: !Ref DalfoxUrlsJobDefinition
+    Export:
+      Name: DalfoxUrlsJobDefinitionARN
