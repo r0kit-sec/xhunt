@@ -14,7 +14,7 @@ def submit_jobs(messages):
     # Jobs are submitted in batches to optimize and distribute workload in the cluster
     for message in messages:
         try:
-            raw_command = f"dalfox url -S --found-action './notify/dalfox-notify.sh @@query@@ @@type@@' {message['body']}"
+            raw_command = f"dalfox url -S --found-action './notify/dalfox-notify.sh @@query@@ @@type@@' --no-color {message['body']}"
             command = shlex.split(raw_command)
             logging.info(f"Submitting command: {raw_command}")
             
