@@ -61,7 +61,7 @@ RUN go install -v github.com/projectdiscovery/notify/cmd/notify@latest
 RUN go install github.com/KathanP19/Gxss@latest
 
 # Install SecretFinder; TODO - Write your own regexes to extract your own secrets and make repository private in codecommit.
-RUN git clone https://github.com/m4ll0k/SecretFinder.git secretfinder && cd secretfinder && python3 -m pip install -r requirements.txt
+RUN git clone https://github.com/m4ll0k/SecretFinder.git secretfinder && cd secretfinder && python3 -m pip install -r requirements.txt && cd ..
 
 # Install uro -> s0md3v declutter urls for optimized testing
 # https://github.com/s0md3v/uro
@@ -70,7 +70,11 @@ RUN pip3 install uro
 # Install anew for unique concatenation
 RUN go install -v github.com/tomnomnom/anew@latest
 
+# Install Interlace for parallelism
+RUN git clone https://github.com/codingo/Interlace.git && cd Interlace && python3 -m pip install . && cd ..
+
 # Finish provisioning scripts
 ADD ./notify/provider-config.yaml /root/.config/notify/provider-config.yaml
 ADD ./notify/dalfox-notify.sh ./notify/dalfox-notify.sh
 ADD ./tasks.sh .
+ADD ./tasks/gau_urls.sh ./tasks/gau_urls.sh

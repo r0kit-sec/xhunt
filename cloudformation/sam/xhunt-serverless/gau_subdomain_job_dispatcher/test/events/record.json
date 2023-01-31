@@ -1,0 +1,62 @@
+{
+    "Records": [
+        {
+            "eventID": "03000e01ab9db267b685ab6491b9d47c",
+            "eventName": "INSERT",
+            "eventVersion": "1.1",
+            "eventSource": "aws:dynamodb",
+            "awsRegion": "us-east-2",
+            "dynamodb": {
+                "ApproximateCreationDateTime": 1675115502,
+                "Keys": {
+                    "sub_domain": {
+                        "S": "public-firing-range.appspot.com"
+                    },
+                    "target": {
+                        "S": "google"
+                    }
+                },
+                "NewImage": {
+                    "sub_domain": {
+                        "S": "public-firing-range.appspot.com"
+                    },
+                    "source": {
+                        "S": "manual"
+                    },
+                    "time": {
+                        "N": "1663762611"
+                    },
+                    "target": {
+                        "S": "google"
+                    }
+                },
+                "SequenceNumber": "1434000000000017643055890",
+                "SizeBytes": 136,
+                "StreamViewType": "NEW_IMAGE"
+            },
+            "eventSourceARN": "arn:aws:dynamodb:us-east-2:042811066344:table/target_sub_domains/stream/2023-01-30T21:42:15.753"
+        },
+        {
+            "eventID": "9bbeed38567626c4bf95efac7619962f",
+            "eventName": "REMOVE",
+            "eventVersion": "1.1",
+            "eventSource": "aws:dynamodb",
+            "awsRegion": "us-east-2",
+            "dynamodb": {
+                "ApproximateCreationDateTime": 1675115553,
+                "Keys": {
+                    "sub_domain": {
+                        "S": "accountinfo-cat2.earlywarning.com"
+                    },
+                    "target": {
+                        "S": "zellepay"
+                    }
+                },
+                "SequenceNumber": "1434100000000017643108671",
+                "SizeBytes": 57,
+                "StreamViewType": "NEW_IMAGE"
+            },
+            "eventSourceARN": "arn:aws:dynamodb:us-east-2:042811066344:table/target_sub_domains/stream/2023-01-30T21:42:15.753"
+        }
+    ]
+}

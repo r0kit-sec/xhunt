@@ -1,0 +1,6 @@
+{
+    "JobDispatcherFunction": {
+        "TASK_CLUSTER_JOB_QUEUE_ARN": "arn:aws:batch:ca-central-1:042811066344:job-queue/XHuntTaskClusterJobQueue",
+        "TASK_CLUSTER_REFLECTED_XSS_JOB_DEFINITION_ARN": "arn:aws:batch:ca-central-1:042811066344:job-definition/DalfoxReflectedXSS"
+    }
+}
