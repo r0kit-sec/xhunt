@@ -11,6 +11,9 @@ Globals:
     Timeout: 180
 
 Parameters:
+  DeploymentEnvironment:
+    Type: String
+    Description: The environment you are deploying this stack in.
   ClusterSubnetID:
     Type: String
     Default: subnet-24a5095e
@@ -46,6 +49,7 @@ Resources:
     Properties:
       Location: gau_subdomain_job_dispatcher/template.yaml
       Parameters:
+        DeploymentEnvironment: !Ref DeploymentEnvironment
         DynamoDBSubdomainsTableStreamARN: !Ref DynamoDBSubdomainsTableStreamARN
         DalfoxUrlsQueueUrl: !GetAtt DalfoxUrlsQueue.QueueUrl
         DalfoxUrlsQueueArn: !GetAtt DalfoxUrlsQueue.Arn
@@ -196,7 +200,7 @@ Resources:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
         - arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole
-      RoleName: XHuntECSTaskClusterExecutionRole
+      RoleName: !Sub XHuntECSTaskClusterExecutionRole-${DeploymentEnvironment}
       Tags:
         - Key: xhunt
           Value: task-cluster

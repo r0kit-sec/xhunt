@@ -10,6 +10,9 @@ Globals:
     Timeout: 180
 
 Parameters:
+  DeploymentEnvironment:
+    Type: String
+    Description: The environment you are deploying this stack in.
   DynamoDBSubdomainsTableStreamARN:
     Type: String
     Description: The ARN representing the DynamoDB table you wish to subscribe to.
@@ -77,7 +80,7 @@ Resources:
             Effect: Allow
             Principal:
               Service: ecs-tasks.amazonaws.com
-      RoleName: GauSubdomainsJobDefinitionRole
+      RoleName: !Sub GauSubdomainsJobDefinitionRole-${DeploymentEnvironment}
       Tags:
         - Key: xhunt
           Value: task-cluster
