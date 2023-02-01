@@ -1,0 +1,145 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Dispatch jobs to the cluster
+
+  Sample SAM Template for job-dispatcher
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 180
+
+Parameters:
+  DeploymentEnvironment:
+    Type: String
+    Description: The environment you are deploying this stack in.
+  ArjunParameterMiningQueueName:
+    Type: String
+    Description: The name of the arjun SQS queue.
+  DalfoxUrlsQueueUrl:
+    Type: String
+    Description: The SQS queue URL to push URLs to the dalfox urls queue.
+  DalfoxUrlsQueueArn:
+    Type: String
+    Description: The SQS queue ARN to grant the container access to the dalfox urls queue.
+  ECSTaskExecutionRoleARN:
+    Type: String
+    Description: The ARN for the task execution role to container will use in the ECS cluster during execution.
+  XHuntToolsContainerRepositoryName:
+    Type: String
+    Description: The ECR repository name for the xhunt-tools container.
+  JobQueue:
+    Type: String
+    Description: The job queue on the cluster to submit the job to
+
+
+Resources:
+  ArjunParameterMiningJobDispatcherFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: src/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Architectures:
+      - x86_64
+      Policies: 
+        - AWSLambdaSQSQueueExecutionRole
+        - AWSBatchServiceEventTargetRole
+      Environment:
+        Variables:
+            TASK_CLUSTER_JOB_QUEUE_ARN: !Ref JobQueue
+            TASK_CLUSTER_ARJUN_JOB_DEFINITION_ARN: !Ref ArjunParameterMiningJobDefinition
+            DALFOX_URLS_QUEUE: !Ref DalfoxUrlsQueueUrl
+
+      # Configure event source mappings
+      # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-property-function-sqs.html
+      Events:
+        ArjunParameterMiningQueueEvent:
+          Type: SQS
+          Properties:
+            Enabled: true
+            Queue: !Sub 'arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:${ArjunParameterMiningQueueName}'
+
+  ## IAM ##
+  ArjunParameterMiningJobDefinitionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Policies:
+        - PolicyDocument: 
+            Version: '2012-10-17'
+            Statement:
+            - Action: sqs:SendMessage
+              Effect: Allow
+              Resource: !Ref DalfoxUrlsQueueArn
+          PolicyName: SendMessagesToDalfoxUrlsQueue
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+      RoleName: !Sub ArjunParameterMiningJobDefinitionRole-${DeploymentEnvironment}
+      Tags:
+        - Key: xhunt
+          Value: task-cluster
+
+  ## CLUSTER JOB DEFINITIONS ##
+  ArjunParameterMiningJobDefinition:
+    Type: AWS::Batch::JobDefinition
+    Properties:
+      ContainerProperties:
+        Environment: []
+        ExecutionRoleArn: !Ref ECSTaskExecutionRoleARN
+        JobRoleArn: !GetAtt ArjunParameterMiningJobDefinitionRole.Arn
+        FargatePlatformConfiguration:
+          PlatformVersion: LATEST
+        Image:
+          !Join
+            - ''
+            - - !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/
+              - !Ref  XHuntToolsContainerRepositoryName
+              - :latest
+        LinuxParameters:
+          Devices: []
+          InitProcessEnabled: false
+          Tmpfs: []
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-region: !Ref AWS::Region
+            awslogs-group: /xhunt/task-cluster/arjun-parameter-mining
+            awslogs-create-group: true
+          SecretOptions: []
+        MountPoints: []
+        NetworkConfiguration:
+          AssignPublicIp: ENABLED
+        ReadonlyRootFilesystem: false
+        ResourceRequirements:
+        - Type: VCPU
+          Value: '0.5'
+        - Type: MEMORY
+          Value: '2048'
+        Secrets: []
+        Ulimits: []
+        User: root
+        Volumes: []
+      JobDefinitionName: ArjunParameterMining
+      Parameters: {}
+      PlatformCapabilities:
+      - FARGATE
+      RetryStrategy:
+        Attempts: 1
+        EvaluateOnExit: []
+      Tags: {}
+      Timeout:
+        AttemptDurationSeconds: 1800
+      Type: container
+
+
+Outputs:
+  ArjunParameterMiningJobDefinitionARN:
+    Value: !Ref ArjunParameterMiningJobDefinition
+    Export:
+      Name: ArjunParameterMiningJobDefinitionARN

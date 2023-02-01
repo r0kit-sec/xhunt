@@ -83,3 +83,4 @@ RUN go install github.com/tomnomnom/unfurl@latest
 ADD ./notify/provider-config.yaml /root/.config/notify/provider-config.yaml
 ADD ./notify/dalfox-notify.sh ./notify/dalfox-notify.sh
 ADD ./tasks/* ./tasks/
+ADD ./wordlists ./wordlists
