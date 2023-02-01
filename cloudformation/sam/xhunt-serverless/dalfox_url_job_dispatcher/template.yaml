@@ -56,9 +56,6 @@ Resources:
     Type: AWS::Batch::JobDefinition
     Properties:
       ContainerProperties:
-        Command:
-        - dalfox
-        - url
         Environment: []
         ExecutionRoleArn: !Ref ECSTaskExecutionRoleARN
         FargatePlatformConfiguration:
@@ -102,7 +99,7 @@ Resources:
         EvaluateOnExit: []
       Tags: {}
       Timeout:
-        AttemptDurationSeconds: 300
+        AttemptDurationSeconds: 1800
       Type: container
 
 
