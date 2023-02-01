@@ -73,8 +73,13 @@ RUN go install -v github.com/tomnomnom/anew@latest
 # Install Interlace for parallelism
 RUN git clone https://github.com/codingo/Interlace.git && cd Interlace && python3 -m pip install . && cd ..
 
+# Install arjun for parameter bruteforcing
+RUN python3 -m pip install arjun
+
+# Install unfurl for url parsing
+RUN go install github.com/tomnomnom/unfurl@latest
+
 # Finish provisioning scripts
 ADD ./notify/provider-config.yaml /root/.config/notify/provider-config.yaml
 ADD ./notify/dalfox-notify.sh ./notify/dalfox-notify.sh
-ADD ./tasks.sh .
-ADD ./tasks/gau_urls.sh ./tasks/gau_urls.sh
+ADD ./tasks/* ./tasks/
