@@ -158,7 +158,7 @@ Resources:
     Properties: 
       ComputeEnvironmentName: XHuntTaskComputeEnvironment
       ComputeResources:
-          MaxvCpus: 8
+          MaxvCpus: 16
           Subnets: 
             - !Ref ClusterSubnetID
           SecurityGroupIds:
