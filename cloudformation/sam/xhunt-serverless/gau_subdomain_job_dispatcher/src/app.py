@@ -10,6 +10,7 @@ def submit_jobs(event):
     job_queue_arn = os.environ['TASK_CLUSTER_JOB_QUEUE_ARN']
     job_definition_arn = os.environ['TASK_CLUSTER_GAU_SUBDOMAINS_JOB_DEFINITION_ARN']
     dalfox_queue = os.environ['DALFOX_URLS_QUEUE']
+    arjun_parameter_mining_queue = os.environ['ARJUN_PARAMETER_MINING_QUEUE']
     client = boto3.client('batch')
 
     # Jobs are submitted in batches to optimize and distribute workload in the cluster
@@ -18,7 +19,7 @@ def submit_jobs(event):
         try:
             subdomain = record['dynamodb']['NewImage']['sub_domain']['S']
             event_id = record['eventID']
-            raw_command = f"./tasks/gau_urls.sh {subdomain} {dalfox_queue}"
+            raw_command = f"./tasks/gau_urls.sh {subdomain} {dalfox_queue} {arjun_parameter_mining_queue}"
             command = shlex.split(raw_command)
             logging.info(f"Submitting command: {raw_command}")
             

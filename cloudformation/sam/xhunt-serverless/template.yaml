@@ -53,6 +53,7 @@ Resources:
         DynamoDBSubdomainsTableStreamARN: !Ref DynamoDBSubdomainsTableStreamARN
         DalfoxUrlsQueueUrl: !GetAtt DalfoxUrlsQueue.QueueUrl
         DalfoxUrlsQueueArn: !GetAtt DalfoxUrlsQueue.Arn
+        ArjunParameterMiningQueueUrl: !GetAtt ArjunParameterMiningQueue.QueueUrl
         ECSTaskExecutionRoleARN: !GetAtt ECSTaskExecutionRole.Arn
         XHuntToolsContainerRepositoryName: !Ref XHuntToolsRepository
         JobQueue: !Ref JobQueue

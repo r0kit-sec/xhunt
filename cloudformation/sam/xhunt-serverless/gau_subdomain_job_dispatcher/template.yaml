@@ -22,6 +22,9 @@ Parameters:
   DalfoxUrlsQueueArn:
     Type: String
     Description: The SQS queue ARN to grant the container access to the dalfox urls queue.
+  ArjunParameterMiningQueueUrl:
+    Type: String
+    Description: The SQS queue URL to push URLs to the arjun parameter mining urls queue.
   ECSTaskExecutionRoleARN:
     Type: String
     Description: The ARN for the task execution role to container will use in the ECS cluster during execution.
@@ -50,6 +53,7 @@ Resources:
             TASK_CLUSTER_JOB_QUEUE_ARN: !Ref JobQueue
             TASK_CLUSTER_GAU_SUBDOMAINS_JOB_DEFINITION_ARN: !Ref GauSubdomainsJobDefinition
             DALFOX_URLS_QUEUE: !Ref DalfoxUrlsQueueUrl
+            ARJUN_PARAMETER_MINING_QUEUE: !Ref ArjunParameterMiningQueueUrl
       # Configure event source mappings
       # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-property-function-sqs.html
       Events:
