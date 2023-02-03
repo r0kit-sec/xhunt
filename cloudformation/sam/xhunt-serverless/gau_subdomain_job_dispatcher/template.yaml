@@ -49,6 +49,7 @@ Resources:
       CodeUri: src/
       Handler: app.lambda_handler
       Runtime: python3.9
+      FunctionName: GauSubdomainJobDispatcherFunction
       Architectures:
       - x86_64
       Policies: 

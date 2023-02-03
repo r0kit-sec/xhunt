@@ -22,6 +22,7 @@ Resources:
       CodeUri: src/
       Handler: app.lambda_handler
       Runtime: python3.9
+      FunctionName: SubdomainUrlsDbWriterFunction
       Architectures:
       - x86_64
       Policies: 
