@@ -408,6 +408,18 @@ Resources:
       Tags: 
         xhunt : task-cluster
 
+  ## AUTOBB INTEROPERABILITY ##
+  AutoBBSubdomainUrlsARNSSM:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: The ARN representing the SubdomainUrls table for the autobb client
+      Name: subdomain-urls-table-arn
+      Tags: 
+        xhunt: legacy-interoperability
+      Type: String
+      Value: !GetAtt SubdomainUrlsDynamoDBTable.Arn
+
+
 Outputs:
   XHuntTaskClusterJobQueueARN:
     Value: !Ref JobQueue
