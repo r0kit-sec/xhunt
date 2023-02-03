@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  The dynamodb table for mapping each subdomain to its respective urls. You should be able to query url:
+  1. By subdomain
+  2. By subdomain and timestamp
+
+  You should also be able to stream from this so subscribers can be updated when new urls are written to the database.
+
+Parameters:
+  SubdomainUrlsTableName:
+    Type: String
+    Description: The name of the dynamo db table to write to
+  SubdomainUrlsDbWriterQueueArn:
+    Type: String
+    Description: The ARN of the SQS queue the serverless function is subscribed to
+  
+Resources:
+  SubdomainUrlsDbWriterFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: src/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Architectures:
+      - x86_64
+      Policies: 
+        - AWSLambdaSQSQueueExecutionRole
+        - DynamoDBWritePolicy:
+            TableName: !Ref SubdomainUrlsTableName
+      Environment:
+        Variables:
+            SUBDOMAIN_URLS_TABLE_NAME: !Ref SubdomainUrlsTableName
+
+      # Configure event source mappings
+      # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-property-function-sqs.html
+      Events:
+        SubdomainUrlsDbWriterQueueEvent:
+          Type: SQS
+          Properties:
+            Enabled: true
+            Queue: !Ref SubdomainUrlsDbWriterQueueArn

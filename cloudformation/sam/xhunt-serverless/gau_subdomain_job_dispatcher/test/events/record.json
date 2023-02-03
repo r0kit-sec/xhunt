@@ -10,7 +10,7 @@
                 "ApproximateCreationDateTime": 1675115502,
                 "Keys": {
                     "sub_domain": {
-                        "S": "testphp.vulnweb.com"
+                        "S": "vip-res-gl.heytap.com"
                     },
                     "target": {
                         "S": "google"
@@ -18,7 +18,7 @@
                 },
                 "NewImage": {
                     "sub_domain": {
-                        "S": "testphp.vulnweb.com"
+                        "S": "vip-res-gl.heytap.com"
                     },
                     "source": {
                         "S": "manual"

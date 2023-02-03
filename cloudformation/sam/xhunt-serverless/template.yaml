@@ -54,6 +54,8 @@ Resources:
         DalfoxUrlsQueueUrl: !GetAtt DalfoxUrlsQueue.QueueUrl
         DalfoxUrlsQueueArn: !GetAtt DalfoxUrlsQueue.Arn
         ArjunParameterMiningQueueUrl: !GetAtt ArjunParameterMiningQueue.QueueUrl
+        SubdomainUrlsDbWriterQueueArn: !GetAtt SubdomainUrlsDbWriterQueue.Arn
+        SubdomainUrlsDbWriterQueueUrl: !GetAtt SubdomainUrlsDbWriterQueue.QueueUrl
         ECSTaskExecutionRoleARN: !GetAtt ECSTaskExecutionRole.Arn
         XHuntToolsContainerRepositoryName: !Ref XHuntToolsRepository
         JobQueue: !Ref JobQueue
@@ -72,6 +74,16 @@ Resources:
         ECSTaskExecutionRoleARN: !GetAtt ECSTaskExecutionRole.Arn
         XHuntToolsContainerRepositoryName: !Ref XHuntToolsRepository
         JobQueue: !Ref JobQueue
+        
+  SubdomainUrlsDbWriterServerlessApplication:
+    Type: AWS::Serverless::Application
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Properties:
+      Location: subdomain_urls_db_writer/template.yaml
+      Parameters:
+        SubdomainUrlsTableName: !Ref SubdomainUrlsDynamoDBTable
+        SubdomainUrlsDbWriterQueueArn: !GetAtt SubdomainUrlsDbWriterQueue.Arn
 
   ApplicationResourceGroup:
     Type: AWS::ResourceGroups::Group
@@ -94,6 +106,38 @@ Resources:
           - Ref: AWS::StackName
       AutoConfigurationEnabled: 'true'
     DependsOn: ApplicationResourceGroup
+
+  ## DATABASES ##
+  SubdomainUrlsDynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: SubdomainUrls
+      AttributeDefinitions:
+      - AttributeName: sub_domain
+        AttributeType: S
+      - AttributeName: url
+        AttributeType: S
+      - AttributeName: time
+        AttributeType: N
+      KeySchema:
+      - AttributeName: sub_domain
+        KeyType: HASH
+      - AttributeName: url
+        KeyType: RANGE
+      LocalSecondaryIndexes:
+        - IndexName: index_by_time
+          KeySchema:
+            - AttributeName: sub_domain
+              KeyType: HASH
+            - AttributeName: time
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE
+      BillingMode: PAY_PER_REQUEST
 
   ## QUEUES ##
   ## DALFOX URLS ##
@@ -217,6 +261,71 @@ Resources:
       Dimensions:
         - Name: QueueName
           Value: !GetAtt ArjunParameterMiningDeadLetterQueue.QueueName
+      DatapointsToAlarm: 2
+      EvaluationPeriods: 3
+      MetricName: ApproximateNumberOfMessagesVisible
+      Namespace: AWS/SQS
+      Period: 300
+      Statistic: Maximum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+  ## SUBDOMAIN URLS DB WRITER QUEUE ##
+  SubdomainUrlsDbWriterQueue:
+    Type: AWS::SQS::Queue
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Properties:
+      VisibilityTimeout: 180
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt SubdomainUrlsDbWriterDeadLetterQueue.Arn
+        maxReceiveCount: 3
+      QueueName: SubdomainUrlsDbWriterQueue
+      Tags:
+        - 
+          Key: xhunt-infrastructure
+          Value: !Ref AWS::StackId
+
+  SubdomainUrlsDbWriterDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Properties:
+      VisibilityTimeout: 160
+      QueueName: SubdomainUrlsDbWriterDeadLetterQueue
+      Tags:
+        -
+          Key: xhunt-infrastructure
+          Value: !Ref AWS::StackId
+
+  SubdomainUrlsDbWriterQueueAgeOfOldestMessage:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: SubdomainUrlsDbWriterQueue_AgeOfOldestMessage
+      AlarmDescription: Alarms if the SQS Queue has messages in it for too long
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt SubdomainUrlsDbWriterQueue.QueueName
+      DatapointsToAlarm: 2
+      EvaluationPeriods: 3
+      MetricName: ApproximateAgeOfOldestMessage
+      Namespace: AWS/SQS
+      Period: 300
+      Statistic: Maximum
+      Threshold: 30
+      TreatMissingData: notBreaching
+      Unit: Seconds
+
+  SubdomainUrlsDbWriterDeadLetterQueueApproximateNumberOfMessagesVisible:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: SubdomainUrlsDbWriterDeadLetterQueue_ApproximateNumberOfMessagesVisible
+      AlarmDescription: Alarms if the Dead Letter Queue has too many messages
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt SubdomainUrlsDbWriterDeadLetterQueue.QueueName
       DatapointsToAlarm: 2
       EvaluationPeriods: 3
       MetricName: ApproximateNumberOfMessagesVisible
